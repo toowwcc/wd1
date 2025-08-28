@@ -153,8 +153,15 @@ const roleScreen = document.getElementById('role-screen');
 const gameScreen = document.getElementById('game-screen');
 const voteScreen = document.getElementById('vote-screen');
 const resultScreen = document.getElementById('result-screen');
+const settingsScreen = document.getElementById('settings-screen');
+const settingsIcon = document.getElementById('settings-icon');
+const closeSettingsBtn = document.getElementById('close-settings');
+
+// 记录当前活动的屏幕，用于从设置界面返回
+let currentActiveScreen = setupScreen;
 
 const playerCountInput = document.getElementById('player-count');
+const undercoverCountInput = document.getElementById('undercover-count');
 const startGameBtn = document.getElementById('start-game');
 const currentPlayerSpan = document.getElementById('current-player');
 const playerWordSpan = document.getElementById('player-word');
@@ -168,17 +175,38 @@ const resultContent = document.getElementById('result-content');
 const playerRoles = document.getElementById('player-roles');
 const continueGameBtn = document.getElementById('continue-game');
 const newGameBtn = document.getElementById('new-game');
+const civilianWordSpan = document.getElementById('civilian-word');
+const undercoverWordSpan = document.getElementById('undercover-word');
+
+// 设置图标点击事件
+settingsIcon.addEventListener('click', () => {
+    showScreen(settingsScreen);
+});
+
+// 关闭设置按钮点击事件
+closeSettingsBtn.addEventListener('click', () => {
+    // 返回到之前的活动屏幕
+    showScreen(currentActiveScreen);
+});
 
 // 初始化游戏
+showScreen(setupScreen);
+
 startGameBtn.addEventListener('click', () => {
     const playerCount = parseInt(playerCountInput.value);
+    const undercoverCount = parseInt(undercoverCountInput.value);
     
     if (playerCount < 3) {
         alert('参与人数至少需要3人！');
         return;
     }
     
-    initGame(playerCount);
+    if (undercoverCount < 1 || undercoverCount > Math.floor(playerCount / 2)) {
+        alert(`卧底人数应在1-${Math.floor(playerCount / 2)}人之间！`);
+        return;
+    }
+    
+    initGame(playerCount, undercoverCount);
     showScreen(roleScreen);
     updateRoleScreen();
 });
@@ -217,10 +245,10 @@ confirmVoteBtn.addEventListener('click', () => {
         return;
     }
     
-    // 检查是否至少投了一票
+    // 检查是否所有人都弃权
     if (gameData.totalVotes === 0) {
-        alert('所有玩家都弃权了，请重新投票！');
-        prepareVoteScreen(); // 重新准备投票屏幕
+        // 所有玩家都弃权，继续游戏而不是重新投票
+        showGameResult('全员弃权', '所有玩家都选择弃权，本轮没有人被淘汰，游戏继续！');
         return;
     }
     
@@ -254,7 +282,7 @@ newGameBtn.addEventListener('click', () => {
 });
 
 // 初始化游戏
-function initGame(playerCount) {
+function initGame(playerCount, undercoverCount) {
     gameData.players = [];
     gameData.currentRound = 0;
     gameData.currentPlayerIndex = 0;
@@ -274,14 +302,8 @@ function initGame(playerCount) {
     const undercoverWord = isWord1Undercover ? gameData.selectedWordPair.word1 : gameData.selectedWordPair.word2;
     const civilianWord = isWord1Undercover ? gameData.selectedWordPair.word2 : gameData.selectedWordPair.word1;
     
-    // 根据玩家人数确定卧底数量
-    // 3人时1个卧底，4人时1个卧底，12人时3个卧底，其他按比例分配
-    let undercoverCount = 1; // 默认1个卧底
-    
-    if (playerCount >= 5) {
-        // 按照大约4:1的比例分配卧底
-        undercoverCount = Math.floor(playerCount / 4);
-    }
+    // 使用用户指定的卧底数量
+    undercoverCount = Math.min(undercoverCount, Math.floor(playerCount / 2));
     
     // 清空卧底索引数组
     gameData.undercoverIndices = [];
@@ -326,14 +348,12 @@ function prepareVoteScreen() {
     gameData.currentVotingPlayerIndex = 0; // 重置当前投票玩家索引
     gameData.votingComplete = false; // 重置投票完成标志
     
-    // 创建当前投票玩家显示
-    const voteInfo = document.createElement('div');
-    voteInfo.className = 'vote-info';
-    voteInfo.innerHTML = `
-        <p>当前投票: <span id="current-voting-player">玩家1</span></p>
-        <p>已投票数: <span id="total-votes">0</span>/${gameData.players.length - gameData.eliminatedPlayers.length}</p>
-    `;
-    playersList.appendChild(voteInfo);
+    // 更新投票信息显示
+    document.getElementById('current-voting-player').textContent = `玩家${gameData.currentVotingPlayerIndex + 1}`;
+    document.getElementById('total-votes').textContent = '0';
+    // 添加总玩家数显示
+    document.getElementById('total-votes').parentElement.innerHTML = 
+        `<i class="fas fa-check-circle"></i> 已投票数: <span id="total-votes">0</span>/${gameData.players.length - gameData.eliminatedPlayers.length}`;
     
     // 创建投票状态显示
     const voteStatus = document.createElement('div');
@@ -348,6 +368,7 @@ function prepareVoteScreen() {
             const playerItem = document.createElement('div');
             playerItem.className = 'player-item';
             playerItem.innerHTML = `
+                <i class="fas fa-user-circle"></i> 
                 <span class="player-name">玩家${index + 1}</span>
                 <div>
                     <span class="vote-count">0</span>
@@ -361,9 +382,9 @@ function prepareVoteScreen() {
     const voteOptions = document.createElement('div');
     voteOptions.className = 'vote-options';
     voteOptions.innerHTML = `
-        <h3>请选择投票对象:</h3>
+        <h3><i class="fas fa-vote-yea"></i> 请选择投票对象:</h3>
         <div id="vote-buttons"></div>
-        <button id="skip-vote" class="btn skip-btn">弃权</button>
+        <button id="skip-vote" class="btn skip-btn"><i class="fas fa-ban"></i> 弃权</button>
     `;
     playersList.appendChild(voteOptions);
     
@@ -374,7 +395,8 @@ function prepareVoteScreen() {
         // 记录投票状态
         const voteStatus = document.getElementById('vote-status');
         const statusItem = document.createElement('div');
-        statusItem.innerHTML = `玩家${gameData.currentVotingPlayerIndex + 1} 选择弃权`;
+        statusItem.style.setProperty('--index', gameData.totalVotes || 0);
+        statusItem.innerHTML = `<i class="fas fa-ban"></i> 玩家${gameData.currentVotingPlayerIndex + 1} 选择弃权`;
         voteStatus.appendChild(statusItem);
         
         // 移动到下一个玩家
@@ -395,7 +417,7 @@ function updateVoteButtons() {
         if (!gameData.eliminatedPlayers.includes(index)) {
             const voteBtn = document.createElement('button');
             voteBtn.className = 'vote-btn';
-            voteBtn.textContent = `玩家${index + 1}`;
+            voteBtn.innerHTML = `<i class="fas fa-user"></i> 玩家${index + 1}`;
             voteBtn.dataset.player = index;
             
             voteBtn.addEventListener('click', (e) => {
@@ -418,7 +440,8 @@ function updateVoteButtons() {
                 // 记录投票状态
                 const voteStatus = document.getElementById('vote-status');
                 const statusItem = document.createElement('div');
-                statusItem.innerHTML = `玩家${gameData.currentVotingPlayerIndex + 1} 投票给了 玩家${playerIndex + 1}`;
+                statusItem.style.setProperty('--index', gameData.totalVotes || 0);
+                statusItem.innerHTML = `<i class="fas fa-check-circle"></i> 玩家${gameData.currentVotingPlayerIndex + 1} 投票给了 玩家${playerIndex + 1}`;
                 voteStatus.appendChild(statusItem);
                 
                 // 更新已投票数
@@ -446,10 +469,11 @@ function moveToNextVoter() {
             
             const voteStatus = document.getElementById('vote-status');
             const statusItem = document.createElement('div');
-            statusItem.innerHTML = `<strong>所有玩家已完成投票，请点击"确认投票"按钮继续</strong>`;
+            statusItem.style.setProperty('--index', gameData.totalVotes || 0);
+            statusItem.innerHTML = `<strong><i class="fas fa-check-double"></i> 所有玩家已完成投票，请点击"确认投票"按钮继续</strong>`;
             voteStatus.appendChild(statusItem);
             
-            document.getElementById('current-voting-player').textContent = "投票完成";
+            document.getElementById('current-voting-player').innerHTML = "<i class='fas fa-check'></i> 投票完成";
             return;
         }
     } while (gameData.eliminatedPlayers.includes(gameData.currentVotingPlayerIndex));
@@ -460,7 +484,13 @@ function moveToNextVoter() {
 
 // 更新当前投票玩家显示
 function updateCurrentVotingPlayer() {
-    document.getElementById('current-voting-player').textContent = `玩家${gameData.currentVotingPlayerIndex + 1}`;
+    const currentVotingPlayer = document.getElementById('current-voting-player');
+    currentVotingPlayer.innerHTML = `<i class="fas fa-user-circle"></i> 玩家${gameData.currentVotingPlayerIndex + 1}`;
+    
+    // 添加动画效果
+    currentVotingPlayer.classList.remove('highlight-player');
+    void currentVotingPlayer.offsetWidth; // 触发重绘
+    currentVotingPlayer.classList.add('highlight-player');
 }
 
 // 计算投票结果
@@ -523,7 +553,7 @@ function processVoteResult(eliminatedIndices) {
 
 // 显示游戏结果
 function showGameResult(title, content) {
-    resultTitle.textContent = title;
+    resultTitle.innerHTML = `<i class="fas fa-trophy"></i> ${title}`;
     resultContent.textContent = content;
     
     // 如果游戏结束，显示所有玩家角色（按编号顺序）
@@ -533,13 +563,9 @@ function showGameResult(title, content) {
         const civilianWord = gameData.players.find(player => !player.isUndercover)?.word || '';
         const undercoverWord = gameData.players.find(player => player.isUndercover)?.word || '';
         
-        // 添加词语对比信息
-        const wordCompare = document.createElement('div');
-        wordCompare.className = 'word-compare';
-        wordCompare.innerHTML = `
-            <p>本局词语: <span class="civilian-word">${civilianWord}</span> vs <span class="undercover-word">${undercoverWord}</span></p>
-        `;
-        playerRoles.appendChild(wordCompare);
+        // 更新词语对比信息
+        civilianWordSpan.textContent = civilianWord;
+        undercoverWordSpan.textContent = undercoverWord;
         
         // 按照玩家编号顺序显示
         for (let i = 0; i < gameData.players.length; i++) {
@@ -549,8 +575,9 @@ function showGameResult(title, content) {
             
             const playerRole = document.createElement('div');
             playerRole.className = 'player-role';
+            playerRole.style.setProperty('--index', i);
             playerRole.innerHTML = `
-                玩家${i + 1}: <span class="${roleClass}">${roleText}</span> (词语: ${player.word})
+                <i class="fas fa-${player.isUndercover ? 'user-secret' : 'user'}"></i> 玩家${i + 1}: <span class="${roleClass}">${roleText}</span> (词语: ${player.word})
             `;
             playerRoles.appendChild(playerRole);
         }
@@ -565,10 +592,19 @@ function showGameResult(title, content) {
 
 // 辅助函数：显示指定屏幕
 function showScreen(screen) {
+    if (!screen) {
+        console.error('Invalid screen element');
+        return;
+    }
     document.querySelectorAll('.screen').forEach(s => {
         s.classList.remove('active');
     });
     screen.classList.add('active');
+    
+    // 如果不是设置界面，则更新当前活动屏幕
+    if (screen !== settingsScreen) {
+        currentActiveScreen = screen;
+    }
 }
 
 // 辅助函数：随机打乱数组

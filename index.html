@@ -3,58 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>谁是卧底</title>
+    <title>谁是卧底 - 趣味推理游戏</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <h1>谁是卧底</h1>
+        <div id="settings-icon" class="settings-icon">
+            <i class="fas fa-cog"></i>
+        </div>
         
         <!-- 游戏设置界面 -->
         <div id="setup-screen" class="screen active">
             <div class="form-group">
-                <label for="player-count">参与人数 (最少3人):</label>
+                <label for="player-count"><i class="fas fa-users"></i> 参与人数 (最少3人):</label>
                 <input type="number" id="player-count" min="3" value="3">
             </div>
-            <button id="start-game" class="btn">开始游戏</button>
+            <div class="form-group">
+                <label for="undercover-count"><i class="fas fa-user-secret"></i> 卧底人数:</label>
+                <input type="number" id="undercover-count" min="1" value="1" max="2">
+            </div>
+            <button id="start-game" class="btn"><i class="fas fa-play"></i> 开始游戏</button>
         </div>
         
         <!-- 查看身份界面 -->
         <div id="role-screen" class="screen">
-            <h2>请玩家 <span id="current-player">1</span> 查看身份</h2>
+            <h2><i class="fas fa-id-card"></i> 请玩家 <span id="current-player">1</span> 查看身份</h2>
             <div id="role-card" class="role-card">
                 <div class="role-front">点击查看你的身份</div>
                 <div class="role-back">
                     <p>你的词语是: <span id="player-word"></span></p>
                 </div>
             </div>
-            <button id="next-player" class="btn">下一位玩家</button>
+            <button id="next-player" class="btn"><i class="fas fa-arrow-right"></i> 下一位玩家</button>
         </div>
         
         <!-- 游戏进行界面 -->
         <div id="game-screen" class="screen">
-            <h2>游戏进行中</h2>
-            <p>所有玩家已查看身份，现在开始描述你看到的词语</p>
-            <p>注意不要直接说出你的词语！</p>
-            <button id="start-vote" class="btn">开始投票</button>
+            <h2><i class="fas fa-gamepad"></i> 游戏进行中</h2>
+            <div class="game-instructions">
+                <p><i class="fas fa-info-circle"></i> 所有玩家已查看身份，现在开始描述你看到的词语</p>
+                <p><i class="fas fa-exclamation-triangle"></i> 注意不要直接说出你的词语！</p>
+                <p><i class="fas fa-lightbulb"></i> 平民需要找出卧底，卧底需要隐藏自己</p>
+            </div>
+            <button id="start-vote" class="btn"><i class="fas fa-vote-yea"></i> 开始投票</button>
         </div>
         
         <!-- 投票界面 -->
         <div id="vote-screen" class="screen">
-            <h2>投票环节</h2>
+            <h2><i class="fas fa-vote-yea"></i> 投票环节</h2>
+            <div class="vote-info">
+                <p><i class="fas fa-user"></i> 当前投票玩家: <span id="current-voting-player"></span></p>
+                <p><i class="fas fa-check-circle"></i> 已投票数: <span id="total-votes">0</span></p>
+            </div>
             <div id="players-list" class="players-list">
                 <!-- 玩家列表将通过JS动态生成 -->
             </div>
-            <button id="confirm-vote" class="btn">确认投票</button>
+            <button id="confirm-vote" class="btn"><i class="fas fa-check-circle"></i> 确认投票</button>
         </div>
         
         <!-- 结果界面 -->
         <div id="result-screen" class="screen">
-            <h2 id="result-title">游戏结果</h2>
+            <h2 id="result-title"><i class="fas fa-trophy"></i> 游戏结果</h2>
             <div id="result-content"></div>
+            <div class="word-compare">
+                <p>平民词语: <span class="civilian-word" id="civilian-word"></span></p>
+                <p>卧底词语: <span class="undercover-word" id="undercover-word"></span></p>
+            </div>
             <div id="player-roles"></div>
-            <button id="continue-game" class="btn">继续游戏</button>
-            <button id="new-game" class="btn">新游戏</button>
+            <div class="button-group">
+                <button id="continue-game" class="btn"><i class="fas fa-redo"></i> 继续游戏</button>
+                <button id="new-game" class="btn"><i class="fas fa-plus-circle"></i> 新游戏</button>
+            </div>
+        </div>
+        
+        <!-- 设置界面 -->
+        <div id="settings-screen" class="screen">
+            <h2><i class="fas fa-cog"></i> 游戏设置</h2>
+            <div class="settings-content">
+                <p class="settings-placeholder">设置功能正在开发中...</p>
+            </div>
+            <button id="close-settings" class="btn"><i class="fas fa-times"></i> 关闭</button>
         </div>
     </div>
     
